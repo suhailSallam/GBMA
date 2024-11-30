@@ -121,7 +121,7 @@ def PreparingModels():
     # Initialize models
     models = {
         "Linear Regression": LinearRegression(),
-        "Ridge Regression": Ridge(alpha=1.0),
+        "Ridge Regression": Ridge(alpha=1.0, solver='auto'),
         "Lasso Regression": Lasso(alpha=0.1),
         "Random Forest": RandomForestRegressor(random_state=42),
         "Gradient Boosting": GradientBoostingRegressor(random_state=42)}
