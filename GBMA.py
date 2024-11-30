@@ -1,11 +1,14 @@
-import pandas as pd
+﻿import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import plotly.express as px
 import seaborn as sns
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.preprocessing import StandardScaler
 import streamlit as st
 import pickle
 # Setting page layout ( This command should be after importing libraries )
@@ -316,29 +319,35 @@ if st.checkbox('Show Actual Vs Predicted'):
     st.plotly_chart(fig, use_container_width=True)
 
 # Feature Importance Plot section
+st.header("Feature Importance")
 if st.checkbox("Show Feature Importance"):
-    importances = model.feature_importances_
-    sorted_idx = np.argsort(importances)[::-1]
-    sorted_features = np.array(features)[sorted_idx]
-    sorted_importances = importances[sorted_idx]
+    try:
+        if isinstance(model, (RandomForestRegressor, GradientBoostingRegressor)):
+            importances = model.feature_importances_
+        elif isinstance(model, (LinearRegression, Ridge, Lasso)):
+            if hasattr(model, "coef_"):
+                importances = np.abs(model.coef_[0] if len(model.coef_.shape) > 1 else model.coef_)
+            else:
+                st.error(f"Feature importance not supported for {rm}.")
+                st.stop()
+        else:
+            st.error(f"Feature importance not available for {rm}.")
+            st.stop()
+        
+        # Sort features by importance
+        sorted_idx = np.argsort(importances)[::-1]
+        sorted_features = np.array(features)[sorted_idx]
+        sorted_importances = importances[sorted_idx]
 
-    # Create a DataFrame for Plotly visualization
-    importance_df = pd.DataFrame({
-        'Feature': sorted_features,
-        'Importance': sorted_importances
-    })
-
-    # Plot using Plotly Express
-    fig = px.bar(
-        importance_df,
-        x='Importance',
-        y='Feature',
-        orientation='h',
-        title='Feature Importance of Gradient Boosting Model',
-        labels={'Feature': 'Features', 'Importance': 'Importance'},
-        color='Importance',
-        color_continuous_scale='Blues'
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-
+        # Plot
+        importance_df = pd.DataFrame({
+            'Feature': sorted_features,
+            'Importance': sorted_importances
+        })
+        fig = px.bar(importance_df, x='Importance', y='Feature', orientation='h',
+                     title=f'Feature Importance ({rm})',
+                     labels={'Feature': 'Features', 'Importance': 'Importance'},
+                     color='Importance', color_continuous_scale='Blues')
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        st.error(f"Failed to compute feature importance: {e}")
